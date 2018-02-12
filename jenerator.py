@@ -2,7 +2,7 @@ import bpy
 import random
 
 class QuickToolsPanel(bpy.types.Panel):
-    """Panel for creating and setting up things quick""
+    """Panel for creating and setting up things quick"""
     bl_label = "Jenerator"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'TOOLS'
