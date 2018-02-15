@@ -12,7 +12,7 @@ class QuickToolsPanel(bpy.types.Panel):
         self.layout.operator("particle.setup")
         self.layout.operator("camera.setup")
 
-
+#Creates a low-poly brick. Pretty self-explanitory
 class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
     bl_idname = "lowpolybrick.brickmaker"
     bl_label = "Low Poly Brick"
@@ -21,6 +21,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
     def execute(self, context):
         bpy.ops.mesh.primitive_cube_add(radius=1, view_align=False, enter_editmode=False, location=(0, 0, 0), layers=(True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False))
 
+        #Beveling and scaling the default cube to look more like a brick shape
         bpy.ops.object.modifier_add(type='BEVEL')
 
         bpy.ops.object.editmode_toggle()
@@ -29,10 +30,10 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
         bpy.ops.transform.resize(value=(randomScale, 2.2, 2.2), constraint_axis=(True, False, False), constraint_orientation='GLOBAL', mirror=False, proportional='DISABLED', proportional_edit_falloff='SMOOTH', proportional_size=1)
         bpy.ops.object.editmode_toggle()
         
-
+        #Sets up new texture for displacement if there wasn't one already
         if bpy.data.textures.get("lowpoly") is None:
             bpy.data.textures.new("lowpoly", 'CLOUDS')
-
+        #Displaces the vertices to make more random looking bricks
         bpy.ops.object.modifier_add(type='DISPLACE')
         bpy.context.object.modifiers["Displace"].strength = random.uniform(-2,2)
         bpy.context.object.modifiers["Displace"].texture = bpy.data.textures["lowpoly"]
@@ -48,7 +49,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
         elif displaceSeed == 5:
             bpy.context.object.modifiers["Displace"].direction = 'Z'
 
-
+        #Decimates the mesh to reduces vertex count
         bpy.ops.object.modifier_add(type='DECIMATE')
         bpy.context.object.modifiers["Decimate"].decimate_type = 'DISSOLVE'
         x = random.randrange(1,2)
@@ -60,7 +61,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
 
         bpy.ops.object.modifier_add(type='SUBSURF')
 
-
+        #Applying modifiers
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Bevel")
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Displace")
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Decimate")
@@ -68,6 +69,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
 
         return {'FINISHED'}
 
+#Sets up a particle system that makes setting up grass and trees easier
 class OBJECT_OT_ParticleSetup(bpy.types.Operator):
     bl_idname = "particle.setup"
     bl_label = "Particle Setup"
@@ -98,7 +100,8 @@ class OBJECT_OT_ParticleSetup(bpy.types.Operator):
         plants.settings=par_set
 
         return {'FINISHED'}
-    
+
+#Creates a camera that rotates around the center to show off modeling projects    
 class OBJECT_OT_TurnaboutCamera(bpy.types.Operator):
     bl_idname = "camera.setup"
     bl_label = "Turnabout Camera"
