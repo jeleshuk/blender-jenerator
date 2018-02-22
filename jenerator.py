@@ -1,5 +1,6 @@
 import bpy
 import random
+ob = bpy.context.active_object
 
 class QuickToolsPanel(bpy.types.Panel):
     """Panel for creating and setting up things quick"""
@@ -11,6 +12,8 @@ class QuickToolsPanel(bpy.types.Panel):
         self.layout.operator("lowpolybrick.brickmaker")
         self.layout.operator("particle.setup")
         self.layout.operator("camera.setup")
+        self.layout.operator("shader.setup")
+
 
 #Creates a low-poly brick. Pretty self-explanitory
 class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
@@ -21,7 +24,6 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
     def execute(self, context):
         bpy.ops.mesh.primitive_cube_add(radius=1, view_align=False, enter_editmode=False, location=(0, 0, 0), layers=(True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False))
 
-        #Beveling and scaling the default cube to look more like a brick shape
         bpy.ops.object.modifier_add(type='BEVEL')
 
         bpy.ops.object.editmode_toggle()
@@ -33,7 +35,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
         #Sets up new texture for displacement if there wasn't one already
         if bpy.data.textures.get("lowpoly") is None:
             bpy.data.textures.new("lowpoly", 'CLOUDS')
-        #Displaces the vertices to make more random looking bricks
+
         bpy.ops.object.modifier_add(type='DISPLACE')
         bpy.context.object.modifiers["Displace"].strength = random.uniform(-2,2)
         bpy.context.object.modifiers["Displace"].texture = bpy.data.textures["lowpoly"]
@@ -49,7 +51,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
         elif displaceSeed == 5:
             bpy.context.object.modifiers["Displace"].direction = 'Z'
 
-        #Decimates the mesh to reduces vertex count
+
         bpy.ops.object.modifier_add(type='DECIMATE')
         bpy.context.object.modifiers["Decimate"].decimate_type = 'DISSOLVE'
         x = random.randrange(1,2)
@@ -61,7 +63,7 @@ class OBJECT_OT_LowPolyBrick(bpy.types.Operator):
 
         bpy.ops.object.modifier_add(type='SUBSURF')
 
-        #Applying modifiers
+
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Bevel")
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Displace")
         bpy.ops.object.modifier_apply(apply_as='DATA', modifier="Decimate")
@@ -100,7 +102,62 @@ class OBJECT_OT_ParticleSetup(bpy.types.Operator):
         plants.settings=par_set
 
         return {'FINISHED'}
+    
+#Creates toon shaders in Cycles and Eevee   
+class OBJECT_OT_ShaderSetup(bpy.types.Operator):
+    bl_idname = "shader.setup"
+    bl_label = "Setup Shaders"
+    bl_description = "Adds toon shaders"
+    
+    def execute(self, context):
+        #Sets up new material if there wasn't one already, from https://blender.stackexchange.com/questions/23433/how-to-assign-a-new-material-to-an-object-in-the-scene-from-python
+        tShader = bpy.data.materials.get("Toon Shader")
+        if tShader is None:
+            tShader = bpy.data.materials.new(name="Toon Shader")
+        if ob.data.materials:
+            ob.data.materials[0] = tShader
+        else:
+            ob.data.materials.append(tShader)
+        
+        # Enable 'Use nodes':
+        # From https://blender.stackexchange.com/questions/5668/add-nodes-to-material-with-python
+        tShader.use_nodes = True
+        nodes = tShader.node_tree.nodes
+        
+        # Remove default
+        tShader.node_tree.nodes.remove(tShader.node_tree.nodes.get('Diffuse BSDF'))
+        material_output = tShader.node_tree.nodes.get('Material Output')
+        
+        # Add New nodes
+        emission = tShader.node_tree.nodes.new('ShaderNodeEmission')
+        emission.inputs['Strength'].default_value = 5.0
+        emission.location = (102,340)
+        
+        ramp = tShader.node_tree.nodes.new('ShaderNodeValToRGB')
+        ramp.color_ramp.interpolation = 'CONSTANT'
+        ramp.color_ramp.elements[1].position = 0.01
+        ramp.location = (-150,340)
+        
+        normal = tShader.node_tree.nodes.new('ShaderNodeNormal')
+        normal.location = (-305,340)
+        
+        mapping = tShader.node_tree.nodes.new('ShaderNodeMapping')
+        mapping.rotation[0] = -0.785398
+        mapping.rotation[1] = -0.785398
+        mapping.location = (-650,340)
+        
+        geo = tShader.node_tree.nodes.new('ShaderNodeNewGeometry')
+        geo.location = (-830,340)
 
+        # link Nodes
+        tShader.node_tree.links.new(material_output.inputs[0], emission.outputs[0])
+        tShader.node_tree.links.new(emission.inputs[0], ramp.outputs[0])
+        tShader.node_tree.links.new(ramp.inputs[0], normal.outputs[1])
+        tShader.node_tree.links.new(normal.inputs[0], mapping.outputs[0])
+        tShader.node_tree.links.new(mapping.inputs[0], geo.outputs[1])
+        return {'FINISHED'}
+    
+    
 #Creates a camera that rotates around the center to show off modeling projects    
 class OBJECT_OT_TurnaboutCamera(bpy.types.Operator):
     bl_idname = "camera.setup"
