@@ -127,11 +127,21 @@ class OBJECT_OT_ShaderSetup(bpy.types.Operator):
         # Remove default
         tShader.node_tree.nodes.remove(tShader.node_tree.nodes.get('Diffuse BSDF'))
         material_output = tShader.node_tree.nodes.get('Material Output')
+        material_output.location = (500,340)
         
         # Add New nodes
+        mixA = tShader.node_tree.nodes.new('ShaderNodeMixShader')
+        mixA.location = (260,340)
+        
         emission = tShader.node_tree.nodes.new('ShaderNodeEmission')
-        emission.inputs['Strength'].default_value = 5.0
-        emission.location = (102,340)
+        emission.inputs['Strength'].default_value = 1.0
+        emission.location = (105,340)
+        
+        diffuse = tShader.node_tree.nodes.new('ShaderNodeBsdfDiffuse')
+        diffuse.location = (105,225)
+        
+        lRay = tShader.node_tree.nodes.new('ShaderNodeLightPath')
+        lRay.location = (105,650)
         
         ramp = tShader.node_tree.nodes.new('ShaderNodeValToRGB')
         ramp.color_ramp.interpolation = 'CONSTANT'
@@ -150,8 +160,12 @@ class OBJECT_OT_ShaderSetup(bpy.types.Operator):
         geo.location = (-830,340)
 
         # link Nodes
-        tShader.node_tree.links.new(material_output.inputs[0], emission.outputs[0])
+        tShader.node_tree.links.new(material_output.inputs[0], mixA.outputs[0])
+        tShader.node_tree.links.new(mixA.inputs[2], emission.outputs[0])
+        tShader.node_tree.links.new(mixA.inputs[1], diffuse.outputs[0])
+        tShader.node_tree.links.new(mixA.inputs[0], lRay.outputs[0])
         tShader.node_tree.links.new(emission.inputs[0], ramp.outputs[0])
+        tShader.node_tree.links.new(diffuse.inputs[0], ramp.outputs[0])
         tShader.node_tree.links.new(ramp.inputs[0], normal.outputs[1])
         tShader.node_tree.links.new(normal.inputs[0], mapping.outputs[0])
         tShader.node_tree.links.new(mapping.inputs[0], geo.outputs[1])
